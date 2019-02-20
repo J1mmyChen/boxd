@@ -126,6 +126,28 @@ func NewRocksDB(name string, o *storage.Options) (storage.Storage, error) {
 						continue
 					}
 					mmtMem += tmp
+					// LevelBaseCompactions
+					tmp, err = strconv.Atoi(db.GetPropertyCF("rocksdb.estimate-pending-compaction-bytes", val.cf))
+					if err != nil {
+						logger.Errorf("db.GetPropertyCF estimate-pending-compaction-bytes fail. Err: %v", err)
+						continue
+					}
+					logger.Errorf("LevelBaseCompactions: %v", tmp)
+					// CFProperties
+					tmp1, err := strconv.Atoi(db.GetPropertyCF("rocksdb.aggregated-table-properties", val.cf))
+					if err != nil {
+						logger.Errorf("db.GetPropertyCF aggregated-table-properties fail. Err: %v", err)
+						continue
+					}
+					logger.Errorf("CFProperties: %v", tmp1)
+					// Statistics
+					tmp2, err := strconv.Atoi(db.GetPropertyCF("rocksdb.options-statistics", val.cf))
+					if err != nil {
+						logger.Errorf("db.GetPropertyCF options-statistics fail. Err: %v", err)
+						continue
+					}
+					logger.Errorf("Statistics: %v", tmp2)
+
 				}
 				metrics.MetricsRocksdbCacheGauge.Update(int64(tickerCache.GetUsage()))
 				metrics.MetricsRocksdbCacheCFGauge.Update(int64(blockCache))
