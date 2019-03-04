@@ -56,14 +56,14 @@ type webapiServer struct {
 
 // ChainTxReader defines chain tx reader interface
 type ChainTxReader interface {
-	LoadTxByHash(crypto.HashType) (*types.Transaction, error)
+	LoadBlockInfoByTxHash(crypto.HashType) (*types.Block, *types.Transaction, error)
 	GetDataFromDB([]byte) ([]byte, error)
 }
 
 // ChainBlockReader defines chain block reader interface
 type ChainBlockReader interface {
 	ChainTxReader
-	LoadBlockInfoByTxHash(crypto.HashType) (*types.Block, *types.Transaction, error)
+	// LoadBlockInfoByTxHash(crypto.HashType) (*types.Block, *types.Transaction, error)
 	ReadBlockFromDB(*crypto.HashType) (*types.Block, int, error)
 	EternalBlock() *types.Block
 }
@@ -223,7 +223,7 @@ func (s *webapiServer) GetTokenInfo(
 		return nil, err
 	}
 	br := s.ChainBlockReader
-	tx, err := br.LoadTxByHash(tokenAddr.OutPoint().Hash)
+	_, tx, err := br.LoadBlockInfoByTxHash(tokenAddr.OutPoint().Hash)
 	if err != nil {
 		return nil, err
 	}
@@ -443,7 +443,7 @@ func detailTxIn(
 
 	if detailVin {
 		hash := &txIn.PrevOutPoint.Hash
-		prevTx, err := r.LoadTxByHash(*hash)
+		_, prevTx, err := r.LoadBlockInfoByTxHash(*hash)
 		if err != nil {
 			logger.Infof("load tx by hash %s from chain error: %s, try tx pool", hash, err)
 			txWrap, _ := tr.GetTxByHash(hash)
@@ -453,6 +453,7 @@ func detailTxIn(
 			prevTx = txWrap.Tx
 		}
 		index := txIn.PrevOutPoint.Index
+		logger.Errorf("detailTxIn prevTx: %+v", prevTx)
 		prevTxHash, _ := prevTx.TxHash()
 		detail.PrevOutDetail, err = detailTxOut(prevTxHash, prevTx.Vout[index],
 			txIn.PrevOutPoint.Index, r)
