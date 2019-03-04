@@ -101,7 +101,7 @@ func (s *webapiServer) receiveNewBlockMsg(block *types.Block) {
 	// detail block
 	logger.Debugf("webapiServer receives a block, hash: %s, height: %d",
 		block.BlockHash(), block.Height)
-	blockDetail, err := detailBlock(block, s.ChainBlockReader, s.TxPoolReader)
+	blockDetail, err := detailBlock(block, s.ChainBlockReader, s.TxPoolReader, true)
 	if err != nil {
 		logger.Warnf("detail block %s height %d error: %s",
 			block.BlockHash(), block.Height, err)
@@ -168,7 +168,7 @@ func (s *webapiServer) ViewTxDetail(
 	}
 	resp.Version = tx.Version
 	// fetch tx details
-	detail, err := detailTx(tx, br, tr)
+	detail, err := detailTx(tx, br, tr, true)
 	if err != nil {
 		logger.Warn("view tx detail error: ", err)
 		return newViewTxDetailResp(-1, err.Error()), nil
@@ -203,7 +203,7 @@ func (s *webapiServer) ViewBlockDetail(
 		logger.Warn("view block detail error: ", err)
 		return newViewBlockDetailResp(-1, err.Error()), nil
 	}
-	detail, err := detailBlock(block, br, tr)
+	detail, err := detailBlock(block, br, tr, true)
 	if err != nil {
 		logger.Warn("view block detail error: ", err)
 		return newViewBlockDetailResp(-1, err.Error()), nil
@@ -370,7 +370,7 @@ func (s *webapiServer) unsubscribe() error {
 }
 
 func detailTx(
-	tx *types.Transaction, br ChainTxReader, tr TxPoolReader,
+	tx *types.Transaction, br ChainTxReader, tr TxPoolReader, detailVin bool,
 ) (*rpcpb.TxDetail, error) {
 
 	detail := new(rpcpb.TxDetail)
@@ -378,7 +378,7 @@ func detailTx(
 	detail.Hash = hash.String()
 	// parse vin
 	for _, in := range tx.Vin {
-		inDetail, err := detailTxIn(in, br, tr)
+		inDetail, err := detailTxIn(in, br, tr, detailVin)
 		if err != nil {
 			return nil, err
 		}
@@ -397,7 +397,7 @@ func detailTx(
 }
 
 func detailBlock(
-	block *types.Block, r ChainBlockReader, tr TxPoolReader,
+	block *types.Block, r ChainBlockReader, tr TxPoolReader, detailVin bool,
 ) (*rpcpb.BlockDetail, error) {
 
 	if block == nil || block.Header == nil {
@@ -418,7 +418,7 @@ func detailBlock(
 	detail.Confirmed = blockConfirmed(block, r)
 	detail.Signature = hex.EncodeToString(block.Signature)
 	for _, tx := range block.Txs {
-		txDetail, err := detailTx(tx, r, tr)
+		txDetail, err := detailTx(tx, r, tr, detailVin)
 		if err != nil {
 			return nil, err
 		}
@@ -428,7 +428,7 @@ func detailBlock(
 }
 
 func detailTxIn(
-	txIn *types.TxIn, r ChainTxReader, tr TxPoolReader,
+	txIn *types.TxIn, r ChainTxReader, tr TxPoolReader, detailVin bool,
 ) (*rpcpb.TxInDetail, error) {
 
 	detail := new(rpcpb.TxInDetail)
@@ -437,25 +437,28 @@ func detailTxIn(
 		return detail, nil
 	}
 	//
-	hash := &txIn.PrevOutPoint.Hash
-	prevTx, err := r.LoadTxByHash(*hash)
-	if err != nil {
-		logger.Infof("load tx by hash %s from chain error: %s, try tx pool", hash, err)
-		txWrap, _ := tr.GetTxByHash(hash)
-		if txWrap == nil {
-			return nil, fmt.Errorf("tx not found for detail txIn %+v", txIn.PrevOutPoint)
-		}
-		prevTx = txWrap.Tx
-	}
 	detail.ScriptSig = hex.EncodeToString(txIn.ScriptSig)
 	detail.Sequence = txIn.Sequence
 	detail.PrevOutPoint = convOutPoint(txlogic.ConvOutPoint(&txIn.PrevOutPoint))
-	index := txIn.PrevOutPoint.Index
-	prevTxHash, _ := prevTx.TxHash()
-	detail.PrevOutDetail, err = detailTxOut(prevTxHash, prevTx.Vout[index],
-		txIn.PrevOutPoint.Index, r)
-	if err != nil {
-		return nil, err
+
+	if detailVin {
+		hash := &txIn.PrevOutPoint.Hash
+		prevTx, err := r.LoadTxByHash(*hash)
+		if err != nil {
+			logger.Infof("load tx by hash %s from chain error: %s, try tx pool", hash, err)
+			txWrap, _ := tr.GetTxByHash(hash)
+			if txWrap == nil {
+				return nil, fmt.Errorf("tx not found for detail txIn %+v", txIn.PrevOutPoint)
+			}
+			prevTx = txWrap.Tx
+		}
+		index := txIn.PrevOutPoint.Index
+		prevTxHash, _ := prevTx.TxHash()
+		detail.PrevOutDetail, err = detailTxOut(prevTxHash, prevTx.Vout[index],
+			txIn.PrevOutPoint.Index, r)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return detail, nil
 }
@@ -602,7 +605,8 @@ func getCoinbaseAddr(block *types.Block) (string, error) {
 }
 
 func convOutPoint(op *corepb.OutPoint) string {
-	buf := op.GetHash()
+	buf := make([]byte, len(op.GetHash()))
+	copy(buf, op.GetHash())
 	// reverse bytes
 	for i, j := 0, len(buf)-1; i < j; i, j = i+1, j-1 {
 		buf[i], buf[j] = buf[j], buf[i]
