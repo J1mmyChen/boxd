@@ -1543,9 +1543,11 @@ func (chain *BlockChain) splitTxOutputs(tx *types.Transaction) bool {
 
 		if !isSplitTx && len(txOuts) > 1 {
 			isSplitTx = true
-			tx.Vout = vout
-			tx.ResetTxHash()
 		}
+	}
+	if isSplitTx {
+		tx.ResetTxHash()
+		tx.Vout = vout
 	}
 	return isSplitTx
 }
@@ -1567,7 +1569,6 @@ func (chain *BlockChain) splitTxOutput(txOut *corepb.TxOut) []*corepb.TxOut {
 	if !isSplitAddr {
 		return txOuts
 	}
-	logger.Errorf("======= addr: %s, isSplitAddr: %t, sai: %+v", addr, isSplitAddr, sai)
 	if err != nil {
 		logger.Errorf("Split address %v parse error: %v", addr, err)
 		return txOuts
