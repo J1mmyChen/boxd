@@ -115,8 +115,14 @@ func newObject(db *StateDB, address types.AddressHash, data Account) *stateObjec
 	if data.CodeHash == nil {
 		data.CodeHash = emptyCodeHash
 	}
+	// var tr *trie.Trie
+	// if (data.Root != corecrypto.HashType{}) {
+	// 	tr, _ = trie.New(&data.Root, db.Database())
+	// }
+
 	return &stateObject{
 		db:            db,
+		// trie:          tr,
 		address:       address,
 		addrHash:      crypto.Keccak256Hash(address[:]),
 		data:          data,
@@ -157,7 +163,7 @@ func (s *stateObject) getTrie() *trie.Trie {
 		var err error
 		s.trie, err = trie.New(&s.data.Root, s.db.db)
 		if err != nil {
-			s.trie, _ = trie.New(&corecrypto.HashType{}, s.db.db)
+			// s.trie, _ = trie.New(nil, s.db.db)
 			s.setError(fmt.Errorf("can't create storage trie: %v", err))
 		}
 	}
@@ -330,7 +336,7 @@ func (s *stateObject) Code() []byte {
 	if bytes.Equal(s.CodeHash(), emptyCodeHash) {
 		return nil
 	}
-	code, err := s.trie.Get(s.CodeHash())
+	code, err := s.db.db.Get(s.CodeHash())
 	if err != nil {
 		s.setError(fmt.Errorf("can't load code hash %x: %v", s.CodeHash(), err))
 	}

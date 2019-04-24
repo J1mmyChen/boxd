@@ -4,6 +4,7 @@
 package trie
 
 import (
+	"bytes"
 	"os"
 	"testing"
 
@@ -27,6 +28,61 @@ func initDB() *storage.Database {
 	database, _ := storage.NewDatabase(proc, dbCfg)
 	return database
 }
+
+func TestUpdate2(t *testing.T) {
+
+	// ***********************************************************************
+	// test insert & update
+	ensure.NotNil(t, db)
+	trie, err := New(nil, db)
+	ensure.Nil(t, err)
+	k1 := []byte{0xa, 0xb, 0xc, 0x2, 0xd, 0xe}
+	v1 := []byte("v1")
+	ensure.Nil(t, trie.Update(k1, v1))
+
+	k2 := []byte{0xa, 0xb, 0xd, 0x2, 0xd, 0xe}
+	v2 := []byte("v2")
+	ensure.Nil(t, trie.Update(k2, v2))
+
+	k3 := []byte{0xa, 0xb, 0xd, 0x3, 0xd, 0xe}
+	v3 := []byte("v3")
+	ensure.Nil(t, trie.Update(k3, v3))
+
+	k4 := []byte{0xa, 0xb, 0xd, 0x2, 0xa, 0xe}
+	v4 := []byte("v4")
+	ensure.Nil(t, trie.Update(k4, v4))
+
+	k5 := []byte{0xc, 0xb, 0xd, 0x2, 0xa, 0xe}
+	v5 := []byte("v5")
+	ensure.Nil(t, trie.Update(k5, v5))
+
+	k6 := []byte{0x1, 0x2, 0x3, 0x2, 0xa, 0xe, 0x1, 0x2, 0x3, 0x2, 0xa, 0xe, 0x1, 0x2, 0x3, 0x2, 0xa, 0xe, 0x1, 0x2, 0x3, 0x2, 0xa, 0xe, 0x1, 0x2, 0x3, 0x2, 0xa, 0xe, 0x1, 0x2, 0x3, 0x2, 0xa, 0xe, 0x1, 0x2, 0x3, 0x2, 0xa, 0xe}
+	v6 := []byte("v6")
+	ensure.Nil(t, trie.Update(k6, v6))
+
+	rootHash := trie.Hash()
+
+	trie2, err := New(&rootHash, db)
+	v11, err := trie2.Get(k1)
+	ensure.Nil(t, err)
+	ensure.True(t, bytes.Equal(v1, v11))
+	v22, err := trie2.Get(k2)
+	ensure.Nil(t, err)
+	ensure.True(t, bytes.Equal(v2, v22))
+	v33, err := trie2.Get(k3)
+	ensure.Nil(t, err)
+	ensure.True(t, bytes.Equal(v3, v33))
+	v44, err := trie2.Get(k4)
+	ensure.Nil(t, err)
+	ensure.True(t, bytes.Equal(v4, v44))
+	v55, err := trie2.Get(k5)
+	ensure.Nil(t, err)
+	ensure.True(t, bytes.Equal(v5, v55))
+	v66, err := trie2.Get(k6)
+	ensure.Nil(t, err)
+	ensure.True(t, bytes.Equal(v6, v66))
+}
+
 func TestUpdate(t *testing.T) {
 
 	// ***********************************************************************

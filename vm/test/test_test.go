@@ -190,7 +190,7 @@ func TestEVM(t *testing.T) {
 	fmt.Println("after get sender balance, balance =", balance)
 
 	stateDb.Commit(true)
-	// for _, log := range structLogger.StructLogs() {
-	// 	fmt.Println(log)
-	// }
+	for _, log := range structLogger.StructLogs() {
+		fmt.Println(log)
+	}
 }
