@@ -454,7 +454,7 @@ func hexToKey(hex []byte) []byte {
 
 func bytesToHash(bytes []byte) *crypto.HashType {
 	if len(bytes) == 0 {
-	// if len(bytes) == 0 || bytes.Equal(bytes, crypto.ZeroHash[:]) {
+		// if len(bytes) == 0 || bytes.Equal(bytes, crypto.ZeroHash[:]) {
 		return nil
 	}
 	var hash = new(crypto.HashType)

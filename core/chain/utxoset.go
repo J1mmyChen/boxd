@@ -254,7 +254,8 @@ func (u *UtxoSet) applyInternalTx(tx *types.Transaction, blockHeight uint32, sta
 	return nil
 }
 
-func (u *UtxoSet) applyInternalTxs(block *types.Block, stateDB *state.StateDB, db storage.Table) error {
+// ApplyInternalTxs applies internal txs in block
+func (u *UtxoSet) ApplyInternalTxs(block *types.Block, stateDB *state.StateDB, db storage.Table) error {
 	for _, tx := range block.InternalTxs {
 		if err := u.applyInternalTx(tx, block.Header.Height, stateDB, db); err != nil {
 			return err

@@ -26,12 +26,17 @@ import (
 
 // test setup
 var (
-	privKeyMiner, pubKeyMiner, _ = crypto.NewKeyPair()
-	privKey, pubKey, _           = crypto.NewKeyPair()
-	minerAddr, _                 = types.NewAddressFromPubKey(pubKeyMiner)
-	scriptPubKeyMiner            = script.PayToPubKeyHashScript(minerAddr.Hash())
-	userAddr, _                  = types.NewAddressFromPubKey(pubKey)
-	scriptPubKeyUser             = script.PayToPubKeyHashScript(userAddr.Hash())
+	privBytesMiner = []byte{41, 227, 111, 180, 124, 210, 49, 28, 156, 148, 131, 249, 89, 211, 79, 210, 54, 82, 97, 208, 81, 183, 244, 45, 28, 30, 187, 247, 167, 35, 181, 153}
+	privBytesUser  = []byte{109, 162, 71, 154, 180, 47, 74, 157, 44, 36, 228, 16, 110, 27, 14, 208, 190, 118, 25, 106, 13, 154, 241, 107, 156, 9, 98, 118, 152, 129, 69, 185}
+
+	privKeyMiner, pubKeyMiner, _ = crypto.KeyPairFromBytes(privBytesMiner)
+	privKey, pubKey, _           = crypto.KeyPairFromBytes(privBytesUser)
+	//privKeyMiner, pubKeyMiner, _ = crypto.NewKeyPair()
+	//privKey, pubKey, _           = crypto.NewKeyPair()
+	minerAddr, _      = types.NewAddressFromPubKey(pubKeyMiner)
+	scriptPubKeyMiner = script.PayToPubKeyHashScript(minerAddr.Hash())
+	userAddr, _       = types.NewAddressFromPubKey(pubKey)
+	scriptPubKeyUser  = script.PayToPubKeyHashScript(userAddr.Hash())
 
 	privKeySplitA, pubKeySplitA, _ = crypto.NewKeyPair()
 	privKeySplitB, pubKeySplitB, _ = crypto.NewKeyPair()
@@ -591,6 +596,7 @@ func genTestChain(t *testing.T, blockChain *BlockChain) *types.Block {
 	// extend main chain
 	// b0 -> b1
 	b1 := nextBlock(b0)
+	b1.Header.RootHash.SetString("21f2a68960cdc2eb60910e0c80a8d61aa44ae8ce58e38a7bd13d0d24c7d89341")
 	verifyProcessBlock(t, blockChain, b1, nil, 1, b1)
 	balance := getBalance(minerAddr.String(), blockChain.db)
 	stateBalance, _ := blockChain.GetBalance(minerAddr)
