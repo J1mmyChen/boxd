@@ -568,7 +568,7 @@ func (s *StateDB) GetRefund() uint64 {
 
 // Finalise finalises the state by removing the s destructed objects
 // and clears the journal as well as the refunds.
-func (s *StateDB) Finalise(deleteEmptyObjects bool) {
+func (s *StateDB) finalise(deleteEmptyObjects bool) {
 	for addr := range s.journal.dirties {
 		stateObject, exist := s.stateObjects[addr]
 		if !exist {
@@ -597,7 +597,7 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 // It is called in between transactions to get the root hash that
 // goes into transaction receipts.
 func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) corecrypto.HashType {
-	s.Finalise(deleteEmptyObjects)
+	s.finalise(deleteEmptyObjects)
 	return s.trie.Hash()
 }
 
@@ -618,6 +618,7 @@ func (s *StateDB) clearJournalAndRefund() {
 // Commit writes the state to the underlying in-memory trie database.
 func (s *StateDB) Commit(deleteEmptyObjects bool) (*corecrypto.HashType, *corecrypto.HashType, error) {
 	defer s.clearJournalAndRefund()
+	s.finalise(deleteEmptyObjects)
 
 	for addr := range s.journal.dirties {
 		s.stateObjectsDirty[addr] = struct{}{}
