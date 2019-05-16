@@ -401,6 +401,28 @@ func MakeUnsignedTx(
 	return tx, utxos, err
 }
 
+//MakeUnsignedContractTx make a tx without a signature
+func MakeUnsignedContractTx(
+	wa service.WalletAgent, addr string, amount uint64, gasLimit uint64, gasPrice uint64, byteCode []byte,
+) (*types.Transaction, []*rpcpb.Utxo, error) {
+	gasUsed := gasLimit * gasPrice
+	total := gasUsed + amount
+	utxos, err := wa.Utxos(addr, nil, total)
+	if err != nil {
+		return nil, nil, err
+	}
+	changeAmt, overflowed := calcChangeContractAmount(amount, gasUsed, utxos...)
+	if overflowed {
+		return nil, nil, txlogic.ErrInsufficientBalance
+	}
+
+	if err != nil {
+		return nil, nil, err
+	}
+	tx, err := txlogic.MakeUnsignedContractTx(addr, amount, changeAmt, gasLimit, gasPrice, byteCode, utxos...)
+	return tx, utxos, err
+}
+
 // MakeUnsignedSplitAddrTx news tx to make split addr without signature
 // it returns a tx, split addr, a change
 func MakeUnsignedSplitAddrTx(
@@ -460,6 +482,7 @@ func MakeUnsignedTokenTransferTx(
 	mixUtxos := append(utxos, tokenUtxos...)
 	tx, _, err := txlogic.MakeUnsignedTokenTransferTx(from, to, amounts, tid,
 		changeAmt, mixUtxos...)
+
 	return tx, mixUtxos, err
 }
 
@@ -468,6 +491,20 @@ func calcChangeAmount(amounts []uint64, gasUsed uint64, utxos ...*rpcpb.Utxo) (u
 	for _, a := range amounts {
 		total += a
 	}
+	uv := uint64(0)
+	for _, u := range utxos {
+		amount, tid, err := txlogic.ParseUtxoAmount(u)
+		if err != nil || tid != nil {
+			continue
+		}
+		uv += amount
+	}
+	changeAmt := uv - total
+	return changeAmt, changeAmt > uv
+}
+
+func calcChangeContractAmount(amount uint64, gasUsed uint64, utxos ...*rpcpb.Utxo) (uint64, bool) {
+	total := gasUsed + amount
 	uv := uint64(0)
 	for _, u := range utxos {
 		amount, tid, err := txlogic.ParseUtxoAmount(u)

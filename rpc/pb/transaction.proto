@@ -60,26 +60,41 @@ service TransactionCommand {
         };
     }
 
-    rpc MakeUnsignedSplitAddrTx(MakeSplitAddrTxReq) returns (MakeSplitAddrTxResp) {
+    rpc MakeUnsignedSplitAddrTx (MakeSplitAddrTxReq) returns (MakeSplitAddrTxResp) {
         option (google.api.http) = {
             post: "/v1/tx/makeunsignedtx/splitaddr"
             body: "*"
         };
     }
 
-    rpc MakeUnsignedTokenIssueTx(MakeTokenIssueTxReq) returns (MakeTokenIssueTxResp) {
+    rpc MakeUnsignedTokenIssueTx (MakeTokenIssueTxReq) returns (MakeTokenIssueTxResp) {
         option (google.api.http) = {
             post: "/v1/tx/makeunsignedtx/token/issue"
             body: "*"
         };
     }
 
-    rpc MakeUnsignedTokenTransferTx(MakeTokenTransferTxReq) returns (MakeTxResp) {
+    rpc MakeUnsignedTokenTransferTx (MakeTokenTransferTxReq) returns (MakeTxResp) {
         option (google.api.http) = {
             post: "/v1/tx/makeunsignedtx/token/transfer"
             body: "*"
         };
     }
+
+    rpc MakeUnsignedContractTx (MakeContractTxReq) returns (MakeTxResp) {
+        option (google.api.http) = {
+            post: "/v1/tx/makeunsignedtx/contract"
+            body: "*"
+        };
+    }
+
+}
+message MakeContractTxReq {
+    string addr = 1;
+    uint64 amount = 3;
+    uint64 gas_price = 4;
+    uint64 gas_limit = 5;
+    string bytecode = 6;
 }
 
 message GetBalanceReq {
