@@ -33,6 +33,7 @@ import (
 	"github.com/BOXFoundation/boxd/util"
 	"github.com/BOXFoundation/boxd/util/bloom"
 	"github.com/BOXFoundation/boxd/vm"
+	"github.com/BOXFoundation/boxd/vm/common/math"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/jbenet/goprocess"
 	peer "github.com/libp2p/go-libp2p-peer"
@@ -1317,6 +1318,34 @@ func (chain *BlockChain) LoadBlockByHeight(height uint32) (*types.Block, error) 
 	}
 
 	return block, nil
+}
+
+// GetEvmByHeight get evm by block height.
+func (chain *BlockChain) GetEvmByHeight(msg types.Message, height uint32) (*vm.EVM, func() error, error) {
+	block, err := chain.LoadBlockByHeight(height)
+	if block == nil || err != nil {
+		return nil, nil, err
+	}
+	state, err := state.New(&block.Header.RootHash, &block.Header.UtxoRoot, chain.db)
+	if state == nil || err != nil {
+		return nil, nil, err
+	}
+	state.SetBalance(*msg.From(), math.MaxBig256)
+	context := NewEVMContext(msg, block.Header, chain)
+	return vm.NewEVM(context, state, vm.Config{}), state.Error, nil
+}
+
+// NonceByHeight get nonce by block height.
+func (chain *BlockChain) NonceByHeight(address *types.AddressHash, height uint32) (uint64, error) {
+	block, err := chain.LoadBlockByHeight(height)
+	if block == nil || err != nil {
+		return 0, err
+	}
+	state, err := state.New(&block.Header.RootHash, &block.Header.UtxoRoot, chain.db)
+	if state == nil || err != nil {
+		return 0, err
+	}
+	return state.GetNonce(*address), nil
 }
 
 // StoreBlockWithStateInBatch store block to db in batch mod.
